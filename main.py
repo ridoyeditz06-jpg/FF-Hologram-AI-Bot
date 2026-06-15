@@ -1,4 +1,59 @@
-# কোডের HTML অংশটি নিচে বসিয়ে দিন
+from flask import Flask, render_template_string, request, jsonify
+import requests
+import threading
+import time
+import os
+
+app = Flask(__name__)
+
+# কনফিগারেশন
+TELEGRAM_BOT_TOKEN = "8443047294:AAHNR76KLcFYg4LGn2yXwip7y9Zf7bOJSpg"
+YOUR_CHAT_ID = "8762376045" 
+PANEL_GROUP_LINK = "https://t.me/+oe_rcewUi142ZmNl"
+
+order_status = {} 
+
+# --- সার্ভার সচল রাখার সিস্টেম ---
+def keep_alive():
+    while True:
+        try: requests.get("https://ai-bot-1.onrender.com/") 
+        except: pass
+        time.sleep(300)
+threading.Thread(target=keep_alive, daemon=True).start()
+
+# --- টেলিগ্রামে অর্ডার পাঠানোর ফাংশন ---
+def send_to_telegram(name, num, tid, order_id):
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": YOUR_CHAT_ID,
+        "text": f"🔔 নতুন অর্ডার #{order_id}!\n👤 নাম: {name}\n📱 বিকাশ: {num}\n🆔 ট্রানজেকশন: {tid}",
+        "reply_markup": {"inline_keyboard": [[
+            {"text": "✅ এপ্রুভ", "callback_data": f"approve_{order_id}"},
+            {"text": "❌ রিজেক্ট", "callback_data": f"reject_{order_id}"}
+        ]]}
+    }
+    requests.post(url, json=payload)
+
+# --- অটোমেটিক বাটন হ্যান্ডলার ---
+def bot_listener():
+    last_update_id = 0
+    while True:
+        try:
+            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates?offset={last_update_id + 1}"
+            r = requests.get(url).json()
+            if r.get('result'):
+                for update in r['result']:
+                    last_update_id = update['update_id']
+                    if 'callback_query' in update:
+                        data = update['callback_query']['data']
+                        order_id = int(data.split('_')[1])
+                        if "approve_" in data: order_status[order_id] = "approved"
+                        elif "reject_" in data: order_status[order_id] = "rejected"
+        except: pass
+        time.sleep(2)
+threading.Thread(target=bot_listener, daemon=True).start()
+
+# --- এইচটিএমএল কোড ---
 HTML = """
 <!DOCTYPE html>
 <html>
@@ -12,8 +67,9 @@ HTML = """
         .box { flex: 1; padding: 20px; overflow-y: auto; text-align: center; }
         .card { background: rgba(255, 255, 255, 0.08); border-radius: 15px; padding: 20px; border: 1px solid #007bff; }
         .menu-wrapper { padding: 15px; background: rgba(0,0,0,0.9); border-top: 1px solid #333; }
-        .sub-menu { display: none; margin-top: 10px; }
-        button { padding: 12px; background: #007bff; border: none; color: white; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 5px; }
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .sub-menu { display: none; grid-template-columns: 1fr; gap: 8px; }
+        button { padding: 12px; background: #007bff; border: none; color: white; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; }
         input { width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #444; background: #222; color: #fff; }
     </style>
 </head>
@@ -35,7 +91,10 @@ HTML = """
             </div>
         </div>
         <div class="menu-wrapper">
-            <button onclick="toggleMenu()">☰ মেনু</button>
+            <div class="menu-grid">
+                <button onclick="window.location.reload()">🏠 হোম</button>
+                <button onclick="toggleMenu()">☰ মেনু</button>
+            </div>
             <div id="mainMenu" class="sub-menu">
                 <button onclick="showOrderForm()">🛒 ক্রয় প্যানেল</button>
                 <button onclick="window.location.href='https://vt.tiktok.com/ZSQXNja3P/'">🎬 রিভিউ ভিডিও</button>
@@ -46,9 +105,8 @@ HTML = """
     </div>
     <script>
         function toggleMenu() { 
-            var m = document.getElementById('mainMenu'); 
-            if (m.style.display === 'block') { m.style.display = 'none'; } 
-            else { m.style.display = 'block'; }
+            let m = document.getElementById('mainMenu'); 
+            m.style.display = (m.style.display === 'grid') ? 'none' : 'grid'; 
         }
         function showOrderForm() {
             document.getElementById('box').innerHTML = `<div class="card"><input id="name" placeholder="আপনার নাম"><input id="num" placeholder="বিকাশ লাস্ট ৪ ডিজিট"><input id="tid" placeholder="ট্রানজেকশন আইডি"><button style="width:95%;" onclick="submitOrder()">সাবমিট করুন</button></div>`;
@@ -61,7 +119,7 @@ HTML = """
                 let check = setInterval(() => {
                     fetch('/check_status/' + d.order_id).then(r=>r.json()).then(res => {
                         if(res.status == "approved") { 
-                            document.getElementById('box').innerHTML = "<h3>✅ অভিনন্দন! পেমেন্ট সফল।<br><br><a href='https://t.me/+oe_rcewUi142ZmNl' target='_blank' style='color:yellow; font-size:20px; text-decoration:none;'>👉 এখানে ক্লিক করে সরাসরি গ্রুপে জয়েন করুন 👈</a></h3>"; 
+                            document.getElementById('box').innerHTML = "<h3>✅ অভিনন্দন! পেমেন্ট সফল। নিচে জয়েন করুন:<br><br><a href='https://t.me/+oe_rcewUi142ZmNl' target='_blank' style='color:yellow; font-size:20px; text-decoration:none;'>👉 এখানে ক্লিক করে সরাসরি গ্রুপে জয়েন করুন 👈</a></h3>"; 
                             clearInterval(check); 
                         }
                         else if(res.status == "rejected") { 
@@ -76,3 +134,22 @@ HTML = """
 </body>
 </html>
 """
+
+@app.route('/')
+def home(): return render_template_string(HTML)
+
+@app.route('/order', methods=['POST'])
+def order():
+    d = request.json
+    order_id = int(time.time())
+    order_status[order_id] = "pending"
+    send_to_telegram(d['name'], d['num'], d['tid'], order_id)
+    return jsonify({'order_id': order_id})
+
+@app.route('/check_status/<int:order_id>')
+def check_status(order_id):
+    return jsonify({'status': order_status.get(order_id, "pending")})
+
+if __name__ == '__main__': 
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
