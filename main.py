@@ -3,16 +3,15 @@ import google.generativeai as genai
 
 app = Flask(__name__)
 
-# আপনার জিমিনি এপিআই কি
+# আপনার দেওয়া এপিআই কি এখানে বসিয়েছি
 genai.configure(api_key="AQ.Ab8RN6LTMM_3qBCIwI_TOf0f47CmLJ-Raso_Q65D0qM2Nwqx0A")
-model = genai.GenerativeModel('gemini-pro')
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 HTML = """
 <!DOCTYPE html>
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AI Chat</title>
     <style>
         body { font-family: sans-serif; max-width: 500px; margin: 20px auto; padding: 10px; background: #f4f4f4; }
         #chat-box { height: 400px; border: 1px solid #ddd; padding: 15px; overflow-y: scroll; background: #fff; border-radius: 5px; margin-bottom: 10px; }
@@ -21,7 +20,7 @@ HTML = """
     </style>
 </head>
 <body>
-    <h3>Gemini AI</h3>
+    <h3>Gemini AI Chat</h3>
     <div id="chat-box"></div>
     <input id="in" placeholder="কিছু জিজ্ঞেস করুন...">
     <button onclick="send()">পাঠান</button>
@@ -37,6 +36,7 @@ HTML = """
             .then(r=>r.json()).then(d=>{
                 document.getElementById('chat-box').innerHTML += `<p><b>আপনি:</b> ${m}</p>`;
                 document.getElementById('chat-box').innerHTML += `<p><b>AI:</b> ${d.r}</p>`;
+                document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
                 document.getElementById('in').value = '';
             });
         }
@@ -52,10 +52,9 @@ def home(): return render_template_string(HTML)
 def api():
     try:
         msg = request.json.get('msg')
-        # এখানে কোনো কন্ডিশন নেই, সরাসরি এআই উত্তর দিবে
         response = model.generate_content(msg)
         return jsonify({'r': response.text})
-    except:
-        return jsonify({'r': "দুঃখিত, আমি এই মুহূর্তে উত্তর দিতে পারছি না।"})
+    except Exception as e:
+        return jsonify({'r': f"এরর হয়েছে: {str(e)}"})
 
 if __name__ == '__main__': app.run(host='0.0.0.0', port=5000)
