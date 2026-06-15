@@ -5,44 +5,71 @@ import time
 
 app = Flask(__name__)
 
-# --- সার্ভার সচল রাখার সিস্টেম (Keep Alive) ---
-def keep_alive():
-    while True:
-        try:
-            # সার্ভার সচল রাখার জন্য রিকোয়েস্ট লিংক
-            requests.get("https://ai-bot-1.onrender.com/") 
-        except:
-            pass
-        time.sleep(300) # প্রতি ৫ মিনিট পর পর পিং করবে
-
-threading.Thread(target=keep_alive, daemon=True).start()
-# ---------------------------------------------
-
 # কনফিগারেশন
 TELEGRAM_BOT_TOKEN = "8443047294:AAHNR76KLcFYg4LGn2yXwip7y9Zf7bOJSpg"
 YOUR_CHAT_ID = "8762376045" 
 PANEL_GROUP_LINK = "https://t.me/Ridoy_Official_penal"
 
+# --- সার্ভার সচল রাখার সিস্টেম ---
+def keep_alive():
+    while True:
+        try:
+            requests.get("https://ai-bot-1.onrender.com/") 
+        except: pass
+        time.sleep(300)
+threading.Thread(target=keep_alive, daemon=True).start()
+
+# --- টেলিগ্রামে অর্ডার পাঠানোর ফাংশন ---
+def send_to_telegram(name, num, tid, order_id):
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": YOUR_CHAT_ID,
+        "text": f"🔔 নতুন অর্ডার #{order_id}!\n👤 নাম: {name}\n📱 বিকাশ: {num}\n🆔 ট্রানজেকশন: {tid}",
+        "reply_markup": {
+            "inline_keyboard": [[
+                {"text": "✅ এপ্রুভ", "callback_data": f"approve_{order_id}"},
+                {"text": "❌ রিজেক্ট", "callback_data": f"reject_{order_id}"}
+            ]]
+        }
+    }
+    requests.post(url, json=payload)
+
+# --- অটোমেটিক বাটন হ্যান্ডলার (এটিই আপনার সমস্যার সমাধান) ---
+def bot_listener():
+    last_update_id = 0
+    while True:
+        try:
+            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates?offset={last_update_id + 1}"
+            r = requests.get(url).json()
+            if r.get('result'):
+                for update in r['result']:
+                    last_update_id = update['update_id']
+                    if 'callback_query' in update:
+                        cb = update['callback_query']
+                        data = cb['data']
+                        chat_id = cb['message']['chat']['id']
+                        
+                        if "approve_" in data:
+                            requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage", 
+                                          json={"chat_id": chat_id, "text": f"✅ অর্ডারটি এপ্রুভ করা হয়েছে!\nলিংক: {PANEL_GROUP_LINK}"})
+                        elif "reject_" in data:
+                            requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage", 
+                                          json={"chat_id": chat_id, "text": "❌ অর্ডারটি রিজেক্ট করা হয়েছে।"})
+        except: pass
+        time.sleep(2)
+threading.Thread(target=bot_listener, daemon=True).start()
+
+# --- এইচটিএমএল ---
 HTML = """
 <!DOCTYPE html>
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { 
-            background: url('https://i.ibb.co/dsBgKftF/5162.jpg') no-repeat center center fixed; 
-            background-size: cover; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; 
-            display: flex; justify-content: center; height: 100vh; 
-        }
-        .container { 
-            width: 100%; max-width: 400px; height: 100vh; background: rgba(0, 0, 0, 0.85); 
-            backdrop-filter: blur(15px); display: flex; flex-direction: column; 
-        }
+        body { background: url('https://i.ibb.co/dsBgKftF/5162.jpg') no-repeat center center fixed; background-size: cover; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; justify-content: center; height: 100vh; }
+        .container { width: 100%; max-width: 400px; height: 100vh; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(15px); display: flex; flex-direction: column; }
         .sticky-header { text-align: center; padding: 20px 15px 10px; }
-        .sticky-header img { 
-            width: 90px; height: 90px; border-radius: 50%; 
-            border: 3px solid #007bff; box-shadow: 0 0 15px #007bff; object-fit: cover; 
-        }
+        .sticky-header img { width: 90px; height: 90px; border-radius: 50%; border: 3px solid #007bff; box-shadow: 0 0 15px #007bff; object-fit: cover; }
         .box { flex: 1; padding: 20px; overflow-y: auto; text-align: center; }
         .card { background: rgba(255, 255, 255, 0.08); border-radius: 15px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); }
         .menu-wrapper { padding: 15px; background: rgba(0,0,0,0.9); border-top: 1px solid #333; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -100,7 +127,10 @@ def home(): return render_template_string(HTML)
 
 @app.route('/order', methods=['POST'])
 def order():
-    # ইউজার যখন সাবমিট করবে, আপনার টেলিগ্রামে নোটিফিকেশন যাবে
+    d = request.json
+    order_id = int(time.time())
+    send_to_telegram(d['name'], d['num'], d['tid'], order_id)
     return jsonify({'r': "✅ তথ্য পাঠানো হয়েছে। এডমিন চেক করছেন, দয়া করে একটু অপেক্ষা করুন!"})
 
-if __name__ == '__main__': app.run(host='0.0.0.0', port=5000)
+if __name__ == '__main__': 
+    app.run(host='0.0.0.0', port=5000)
