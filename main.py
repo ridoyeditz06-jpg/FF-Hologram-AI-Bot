@@ -10,6 +10,7 @@ app = Flask(__name__)
 TELEGRAM_BOT_TOKEN = "8443047294:AAHNR76KLcFYg4LGn2yXwip7y9Zf7bOJSpg"
 YOUR_CHAT_ID = "8762376045" 
 PANEL_GROUP_LINK = "https://t.me/+oe_rcewUi142ZmNl"
+MY_BKASH = "01727671230"
 
 order_status = {} 
 
@@ -71,6 +72,7 @@ HTML = """
         .sub-menu { display: none; grid-template-columns: 1fr; gap: 8px; }
         button { padding: 12px; background: #007bff; border: none; color: white; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; }
         input { width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #444; background: #222; color: #fff; }
+        .copy-btn { background: #ffcc00; color: #000; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; margin: 10px 0; }
     </style>
 </head>
 <body>
@@ -83,7 +85,6 @@ HTML = """
         <div id="box" class="box">
             <div id="homeContent" class="card">
                 <h2>⚡ স্বাগতম Boss ⚡</h2>
-                <p>🔥 প্রফেশনাল গেমিং সলিউশনস 🔥</p>
                 <div style="background: rgba(0, 123, 255, 0.2); padding: 15px; border-radius: 12px; border: 1px dashed #007bff; margin: 15px 0;">
                     <p>✅ এন্টি-ব্যান প্রোটেকশন</p><p>✅ ২৪/৭ নিরবচ্ছিন্ন সাপোর্ট</p>
                 </div>
@@ -108,8 +109,19 @@ HTML = """
             let m = document.getElementById('mainMenu'); 
             m.style.display = (m.style.display === 'grid') ? 'none' : 'grid'; 
         }
+        function copyNum() {
+            navigator.clipboard.writeText('01727671230');
+            alert('বিকাশ নাম্বার কপি হয়েছে!');
+        }
         function showOrderForm() {
-            document.getElementById('box').innerHTML = `<div class="card"><input id="name" placeholder="আপনার নাম"><input id="num" placeholder="বিকাশ লাস্ট ৪ ডিজিট"><input id="tid" placeholder="ট্রানজেকশন আইডি"><button style="width:95%;" onclick="submitOrder()">সাবমিট করুন</button></div>`;
+            document.getElementById('box').innerHTML = `
+            <div class="card">
+                <h3 style="color: #ffcc00;">🛒 পেমেন্ট নিয়মাবলী</h3>
+                <p style="font-size: 14px;">বিকাশ পার্সোনাল নাম্বারে শুধু <b>সেন্ট মানি</b> গ্রহণ করা হয়।</p>
+                <div class="copy-btn" onclick="copyNum()">বিকাশ: 01727671230 (ক্লিক করে কপি করুন)</div>
+                <p style="font-size: 13px;">সেন্ট মানি করে নিচে আপনার তথ্যগুলো বসিয়ে সাবমিট করুন:</p>
+                <input id="name" placeholder="আপনার নাম"><input id="num" placeholder="বিকাশ লাস্ট ৪ ডিজিট"><input id="tid" placeholder="ট্রানজেকশন আইডি"><button style="width:95%;" onclick="submitOrder()">সাবমিট করুন</button>
+            </div>`;
         }
         function submitOrder() {
             let data = { name: document.getElementById('name').value, num: document.getElementById('num').value, tid: document.getElementById('tid').value };
