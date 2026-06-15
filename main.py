@@ -1,106 +1,117 @@
-import requests
+from flask import Flask, render_template_string, request, jsonify
 import google.generativeai as genai
-from flask import Flask, request, jsonify, render_template_string
+import threading
+import time
+import requests
 
 app = Flask(__name__)
-
-# 🔑 আপনার সিক্রেট কোড এবং টোকেন
-GEMINI_API_KEY = "AQ.Ab8RN6Ivn3B8x36GguUFwImshyvC5-kGoV9dx9DzBbLexpTkbQ"
-TELEGRAM_BOT_TOKEN = "8443047294:AAHNR76KLcFYg4LGn2yXwip7y9Zf7bOJSpg"
-YOUR_TELEGRAM_CHAT_ID = "8762376045"
-BOSS_SECRET_KEY = "RIDOY_RAJ409" # আপনার সিক্রেট কোড
-
-# 🔗 সব লিংকসমূহ
-TELEGRAM_SUPPORT_LINK = "https://t.me/Ridoy_Official_penal" 
-WHATSAPP_SUPPORT_LINK = "https://wa.me/qr/SIZBFCXQT2AUG1"
-PAID_GROUP_LINK = "https://t.me/+oe_rcewUi142ZmNl"
-TIKTOK_REVIEW_LINK = "https://vt.tiktok.com/ZSQXNja3P/" 
-BKASH_NUMBER = "01727671230"
-
-genai.configure(api_key=GEMINI_API_KEY)
+# আপনার এপিআই কি
+genai.configure(api_key="AQ.Ab8RN6Ivn3B8x36GguUFwImshyvC5-kGoV9dx9DzBbLexpTkbQ")
 model = genai.GenerativeModel('gemini-pro')
 
-# অ্যাডভান্সড চ্যাট স্ক্রিন (FF Hologram AI Bot)
-HTML_TEMPLATE = f"""
+# --- বট ২৪ ঘণ্টা সচল রাখার কোড ---
+def keep_alive():
+    while True:
+        try:
+            # আপনার রেন্ডার লিংকটি নিচে বসান
+            requests.get("https://YOUR_RENDER_URL.onrender.com/")
+        except:
+            pass
+        time.sleep(300) # ৫ মিনিট পর পর নিজেকে পিন করবে
+
+threading.Thread(target=keep_alive, daemon=True).start()
+# ---------------------------------
+
+HTML = """
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>FF Hologram AI Bot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body {{ font-family: sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }}
-        .chat-container {{ width: 100%; max-width: 450px; height: 95vh; background: #fff; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.1); display: flex; flex-direction: column; }}
-        .chat-header {{ background: #007bff; color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 18px; }}
-        .chat-box {{ flex: 1; padding: 15px; overflow-y: auto; background: #f8f9fa; }}
-        .message {{ padding: 10px 14px; border-radius: 15px; margin-bottom: 10px; font-size: 14px; word-wrap: break-word; }}
-        .user-message {{ background: #007bff; color: white; align-self: flex-end; }}
-        .bot-message {{ background: #e4e6eb; color: #050505; align-self: flex-start; }}
-        .input-area {{ display: flex; padding: 10px; border-top: 1px solid #ddd; }}
-        input {{ flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ddd; outline:none; }}
-        button {{ padding: 10px 20px; border-radius: 20px; border: none; background: #007bff; color: white; margin-left: 5px; cursor: pointer; }}
+        body { background: #000; color: #fff; font-family: sans-serif; display: flex; justify-content: center; height: 100vh; margin: 0; }
+        .container { width: 100%; max-width: 400px; display: flex; flex-direction: column; height: 100vh; background: #111; }
+        .header { text-align: center; padding: 15px; }
+        .header img { width: 100px; border-radius: 10px; border: 2px solid #007bff; }
+        .box { flex: 1; padding: 15px; overflow-y: auto; }
+        .menu-wrapper { padding: 10px; background: #222; }
+        .menu-btn { padding: 12px; background: #333; color: white; border: 1px solid #444; width: 100%; cursor: pointer; }
+        .btns, .sub-btns { display: none; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+        button { padding: 10px; background: #007bff; border: none; color: white; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        .input-row { padding: 15px; display: flex; background: #111; }
+        input { flex: 1; padding: 12px; border-radius: 5px; border: none; color: black; }
+        .msg { margin-bottom: 10px; padding: 10px; border-radius: 10px; }
+        .bot { background: #333; }
+        .user { background: #007bff; align-self: flex-end; }
     </style>
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">🔥 FF Hologram AI Bot</div>
-        <div id="chat-box" class="chat-box">
-            <div class='message bot-message'>হ্যালো! আমি আপনার স্মার্ট অ্যাসিস্ট্যান্ট। যেকোনো বিষয় বা প্যানেল সম্পর্কে প্রশ্ন থাকলে আমাকে জানান!</div>
+    <div class="container">
+        <div class="header">
+            <img src="https://i.ibb.co/v4h8zWp9/ds-Bg-Kft-F.jpg" alt="Logo">
+            <div style="margin-top:10px; font-weight:bold;">FF Hologram AI Bot</div>
         </div>
-        <div class="input-area">
-            <input type="text" id="user-input" placeholder="লিখুন..." onkeypress="if(event.key === 'Enter') sendMessage()">
-            <button onclick="sendMessage()">Send</button>
+        <div id="box" class="box"></div>
+        <div class="menu-wrapper">
+            <button class="menu-btn" onclick="toggle('btns')">☰ মেনু বক্স</button>
+            <div id="btns" class="btns">
+                <button onclick="send('রিভিউ ভিডিও')">রিভিউ ভিডিও</button>
+                <button onclick="toggle('sub-btns')">কাস্টমার সার্ভিস</button>
+                <button onclick="send('ক্রয় প্যানেল')">ক্রয় প্যানেল</button>
+            </div>
+            <div id="sub-btns" class="sub-btns">
+                <button onclick="send('টেলিগ্রাম')">টেলিগ্রাম সাপোর্ট</button>
+                <button onclick="send('হোয়াটসঅ্যাপ')">হোয়াটসঅ্যাপ সাপোর্ট</button>
+            </div>
+        </div>
+        <div class="input-row">
+            <input id="in" placeholder="লিখুন Boss...">
+            <button onclick="send()">পাঠান</button>
         </div>
     </div>
     <script>
-        const chatBox = document.getElementById("chat-box");
-        function addBotMessage(html) {{ chatBox.innerHTML += `<div class='message bot-message'>${{html}}</div>`; chatBox.scrollTop = chatBox.scrollHeight; }}
-        
-        async function sendMessage() {{
-            const input = document.getElementById("user-input");
-            if (!input.value.trim()) return;
-            chatBox.innerHTML += `<div class='message user-message'>${{input.value}}</div>`;
-            const msg = input.value;
-            input.value = "";
-            const response = await fetch('/chat-api', {{
-                method: "POST", headers: {{ "Content-Type": "application/json" }},
-                body: JSON.stringify({{ message: msg }})
-            }});
-            const data = await response.json();
-            addBotMessage(data.reply);
-        }}
+        function toggle(id) { let el = document.getElementById(id); el.style.display = (el.style.display === 'grid') ? 'none' : 'grid'; }
+        function send(t) {
+            let m = t || document.getElementById('in').value;
+            if(!m) return;
+            document.getElementById('box').innerHTML += `<div class='msg user'>${m}</div>`;
+            fetch('/api', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({msg:m})})
+            .then(r=>r.json()).then(d=>{
+                document.getElementById('box').innerHTML += `<div class='msg bot'>${d.r}</div>`;
+                document.getElementById('box').scrollTop = document.getElementById('box').scrollHeight;
+            });
+            document.getElementById('in').value = '';
+        }
+        window.onload = function() {
+            document.getElementById('box').innerHTML = `<div class='msg bot'>স্বাগতম Boss! আমাদের FF Hologram লোকেশন প্যানেলে আপনাকে স্বাগতম।<br><br>
+            🔥 **অফার:** মাত্র ৩০০ টাকায় ৬ মাস সার্ভিস!<br>
+            ✅ এন্টি-ব্যান ও এন্টি-ব্ল্যাকলিস্ট সুবিধা。<br>
+            ✅ রিয়েল-টাইম লোকেশন ট্র্যাকিং ও র‍্যাঙ্ক পুশ সুবিধা。<br>
+            🚀 আপডেট আসার আগ পর্যন্ত কোনো প্রবলেম ছাড়াই চলবে।<br><br>
+            প্যানেল নিতে আগ্রহী হলে 'ক্রয় প্যানেল' বাটনে ক্লিক করুন।</div>`;
+        }
     </script>
 </body>
 </html>
 """
 
-@app.route('/', methods=['GET'])
-def home():
-    return render_template_string(HTML_TEMPLATE)
+@app.route('/')
+def home(): return render_template_string(HTML)
 
-@app.route('/chat-api', methods=['POST'])
-def chat_bot():
-    data = request.json
-    msg = data.get("message", "").strip()
+@app.route('/api', methods=['POST'])
+def api():
+    msg = request.json.get('msg', '').lower()
     
-    # 1. Boss কে চেনার জাদুকরী লজিক
-    if msg == BOSS_SECRET_KEY:
-        return jsonify({"reply": "জি Boss, আপনাকে চিনতে পেরেছি! আমি আপনার সব নির্দেশ পালনের জন্য রেডি। বলুন Boss, এখন কী করতে হবে?"})
+    if msg == "ridoy_raj409": return jsonify({'r': "জি Boss, আমি আপনার আদেশের অপেক্ষায় আছি!"})
     
-    # 2. সাধারণ বুদ্ধিমত্তার উত্তর (প্যানেল বা যেকোনো বিষয়ের ওপর)
-    prompt = (
-        f"You are a highly intelligent, witty AI assistant for FF Hologram AI Bot. "
-        f"Talk naturally and logically in Bengali. "
-        f"If the user asks about general topics, answer intelligently like a friend. "
-        f"If the user asks about Free Fire or the location panel, highlight that our panel is 100% safe, Anti-Ban, and gives perfect location accuracy. "
-        f"Customer query: {msg}"
-    )
+    if 'টেলিগ্রাম' in msg: return jsonify({'r': "টেলিগ্রাম সাপোর্ট: https://t.me/Ridoy_Official_penal"})
+    if 'হোয়াটসঅ্যাপ' in msg: return jsonify({'r': "হোয়াটসঅ্যাপ সাপোর্ট: https://wa.me/8801727671230"})
+    if 'ভিডিও' in msg: return jsonify({'r': "রিভিউ ভিডিও: https://vt.tiktok.com/ZSQXNja3P/"})
+    if 'ক্রয়' in msg or 'প্যানেল' in msg: return jsonify({'r': "আমাদের বিকাশ পার্সোনাল নাম্বার: 01727671230। টাকা পাঠানোর পর স্ক্রিনশট দিন। সতর্কতা: অন্য কাউকে টাকা দেবেন না!"})
     
     try:
-        reply = model.generate_content(prompt).text
+        response = model.generate_content(f"You are the admin's AI assistant. User says: {msg}")
+        return jsonify({'r': response.text})
     except:
-        reply = "আপনার পেমেন্ট রিকোয়েস্টটি আমরা পেয়েছি, দয়া করে অপেক্ষা করুন Boss ভেরিফাই না করা পর্যন্ত।"
-        
-    return jsonify({"reply": reply})
+        return jsonify({'r': "জি Boss, বলুন আমি কীভাবে সাহায্য করতে পারি?"})
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+if __name__ == '__main__': app.run(host='0.0.0.0', port=5000)
