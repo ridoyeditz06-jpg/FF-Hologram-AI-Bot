@@ -5,12 +5,14 @@ import time
 
 app = Flask(__name__)
 
+# কনফিগারেশন
 TELEGRAM_BOT_TOKEN = "8443047294:AAHNR76KLcFYg4LGn2yXwip7y9Zf7bOJSpg"
 YOUR_CHAT_ID = "8762376045" 
-PANEL_GROUP_LINK = "https://t.me/Ridoy_Official_penal"
+PANEL_GROUP_LINK = "https://t.me/+oe_rcewUi142ZmNl"
 
 order_status = {} 
 
+# --- সার্ভার সচল রাখার সিস্টেম ---
 def keep_alive():
     while True:
         try: requests.get("https://ai-bot-1.onrender.com/") 
@@ -18,6 +20,7 @@ def keep_alive():
         time.sleep(300)
 threading.Thread(target=keep_alive, daemon=True).start()
 
+# --- টেলিগ্রামে অর্ডার পাঠানোর ফাংশন ---
 def send_to_telegram(name, num, tid, order_id):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
@@ -30,6 +33,7 @@ def send_to_telegram(name, num, tid, order_id):
     }
     requests.post(url, json=payload)
 
+# --- অটোমেটিক বাটন হ্যান্ডলার ---
 def bot_listener():
     last_update_id = 0
     while True:
@@ -48,6 +52,7 @@ def bot_listener():
         time.sleep(2)
 threading.Thread(target=bot_listener, daemon=True).start()
 
+# --- এইচটিএমএল ---
 HTML = """
 <!DOCTYPE html>
 <html>
@@ -103,8 +108,14 @@ HTML = """
             .then(r=>r.json()).then(d => {
                 let check = setInterval(() => {
                     fetch('/check_status/' + d.order_id).then(r=>r.json()).then(res => {
-                        if(res.status == "approved") { document.getElementById('box').innerHTML = "<h3>✅ অভিনন্দন! এই নিন আপনার লিংক: <a href='{{ PANEL_GROUP_LINK }}' style='color:yellow;'>ক্লিক করুন</a></h3>"; clearInterval(check); }
-                        else if(res.status == "rejected") { document.getElementById('box').innerHTML = "<h3>❌ পেমেন্ট রিজেক্ট হয়েছে! আবার ট্রাই করুন।</h3>"; clearInterval(check); }
+                        if(res.status == "approved") { 
+                            document.getElementById('box').innerHTML = "<h3>✅ অভিনন্দন! পেমেন্ট সফল।<br><br><a href='https://t.me/+oe_rcewUi142ZmNl' target='_blank' style='color:yellow; font-size:20px; text-decoration:none;'>👉 এখানে ক্লিক করে সরাসরি গ্রুপে জয়েন করুন 👈</a></h3>"; 
+                            clearInterval(check); 
+                        }
+                        else if(res.status == "rejected") { 
+                            document.getElementById('box').innerHTML = "<h3>❌ পেমেন্ট রিজেক্ট হয়েছে! আবার ট্রাই করুন।</h3>"; 
+                            clearInterval(check); 
+                        }
                     });
                 }, 3000);
             });
@@ -115,7 +126,7 @@ HTML = """
 """
 
 @app.route('/')
-def home(): return render_template_string(HTML, PANEL_GROUP_LINK=PANEL_GROUP_LINK)
+def home(): return render_template_string(HTML)
 
 @app.route('/order', methods=['POST'])
 def order():
