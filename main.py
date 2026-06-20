@@ -90,7 +90,7 @@ HTML = """
         </div>
         <div id="box" class="box">
             <div id="homeContent" class="card">
-                <h2>⚡ স্বাগতম Boss ⚡</h2>
+                <h2>⚡ RIDOY_PENAL ⚡</h2>
                 <div style="background: rgba(0, 123, 255, 0.2); padding: 15px; border-radius: 12px; border: 1px dashed #007bff; margin: 15px 0;">
                     <p>✅ এন্টি-ব্যান প্রোটেকশন</p><p>✅ ২৪/৭ নিরবচ্ছিন্ন সাপোর্ট</p>
                 </div>
