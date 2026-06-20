@@ -3,38 +3,24 @@ import requests
 import threading
 import time
 import os
-import sqlite3
 
 app = Flask(__name__)
 
 # কনফিগারেশন
-TELEGRAM_BOT_TOKEN = "8443047294:AAHNR76KLcFYg4LGn2yXwip7y9Zf7bOJSpg"
+TELEGRAM_BOT_TOKEN = "8912468228:AAFabIjnIMM5x0BZL1UunaunIS2I9tc6fmA"
 YOUR_CHAT_ID = "8762376045" 
+PANEL_GROUP_LINK = "https://t.me/+oe_rcewUi142ZmNl"
+MY_BKASH = "01727671230"
 
-# --- ডাটাবেস সেটআপ ---
-def init_db():
-    conn = sqlite3.connect('orders.db')
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS orders (order_id INTEGER PRIMARY KEY, status TEXT)''')
-    conn.commit()
-    conn.close()
+order_status = {} 
 
-init_db()
-
-def update_db(order_id, status):
-    conn = sqlite3.connect('orders.db')
-    c = conn.cursor()
-    c.execute("INSERT OR REPLACE INTO orders (order_id, status) VALUES (?, ?)", (order_id, status))
-    conn.commit()
-    conn.close()
-
-def get_db(order_id):
-    conn = sqlite3.connect('orders.db')
-    c = conn.cursor()
-    c.execute("SELECT status FROM orders WHERE order_id=?", (order_id,))
-    row = c.fetchone()
-    conn.close()
-    return row[0] if row else "pending"
+# --- সার্ভার সচল রাখার সিস্টেম ---
+def keep_alive():
+    while True:
+        try: requests.get("https://ai-bot-1.onrender.com/") 
+        except: pass
+        time.sleep(300)
+threading.Thread(target=keep_alive, daemon=True).start()
 
 # --- টেলিগ্রামে অর্ডার পাঠানোর ফাংশন ---
 def send_to_telegram(name, num, tid, order_id):
@@ -49,31 +35,26 @@ def send_to_telegram(name, num, tid, order_id):
     }
     requests.post(url, json=payload)
 
-# --- বাটন হ্যান্ডলার (ডাটাবেস দিয়ে) ---
+# --- অটোমেটিক বাটন হ্যান্ডলার ---
 def bot_listener():
     last_update_id = 0
     while True:
         try:
-            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates?offset={last_update_id + 1}&timeout=30"
+            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates?offset={last_update_id + 1}"
             r = requests.get(url).json()
             if r.get('result'):
                 for update in r['result']:
                     last_update_id = update['update_id']
                     if 'callback_query' in update:
-                        query = update['callback_query']
-                        data = query['data']
+                        data = update['callback_query']['data']
                         order_id = int(data.split('_')[1])
-                        
-                        if "approve_" in data: update_db(order_id, "approved")
-                        elif "reject_" in data: update_db(order_id, "rejected")
-                        
-                        requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery", 
-                                      json={"callback_query_id": query['id'], "text": "সফল!"})
+                        if "approve_" in data: order_status[order_id] = "approved"
+                        elif "reject_" in data: order_status[order_id] = "rejected"
         except: pass
-        time.sleep(1)
+        time.sleep(2)
 threading.Thread(target=bot_listener, daemon=True).start()
 
-# --- আপনার সেই পুরনো ডিজাইন ---
+# --- এইচটিএমএল কোড ---
 HTML = """
 <!DOCTYPE html>
 <html>
@@ -105,7 +86,7 @@ HTML = """
             <div id="homeContent" class="card">
                 <h2>⚡ স্বাগতম Boss ⚡</h2>
                 <div style="background: rgba(0, 123, 255, 0.2); padding: 15px; border-radius: 12px; border: 1px dashed #007bff; margin: 15px 0;">
-                    <p>✅ এন্টি-ব্যান প্রোটেকশন</p><p>✅ ২৪ ঘন্টা সাপোর্ট</p>
+                    <p>✅ এন্টি-ব্যান প্রোটেকশন</p><p>✅ ২৪ hours সাপোর্ট</p>
                 </div>
                 <div style="background:#007bff; padding:10px; border-radius:10px; font-weight:bold;">৳ ৩০০ টাকা | ০৬ মাস মেয়াদী 💎</div>
             </div>
@@ -124,13 +105,21 @@ HTML = """
         </div>
     </div>
     <script>
-        function toggleMenu() { let m = document.getElementById('mainMenu'); m.style.display = (m.style.display === 'grid') ? 'none' : 'grid'; }
-        function copyNum() { navigator.clipboard.writeText('01727671230'); alert('বিকাশ নাম্বার কপি হয়েছে!'); }
+        function toggleMenu() { 
+            let m = document.getElementById('mainMenu'); 
+            m.style.display = (m.style.display === 'grid') ? 'none' : 'grid'; 
+        }
+        function copyNum() {
+            navigator.clipboard.writeText('01727671230');
+            alert('বিকাশ নাম্বার কপি হয়েছে!');
+        }
         function showOrderForm() {
             document.getElementById('box').innerHTML = `
             <div class="card">
                 <h3 style="color: #ffcc00;">🛒 পেমেন্ট নিয়মাবলী</h3>
+                <p style="font-size: 14px;">বিকাশ পার্সোনাল নাম্বারে শুধু <b>সেন্ট মানি</b> গ্রহণ করা হয়।</p>
                 <div class="copy-btn" onclick="copyNum()">বিকাশ: 01727671230 (ক্লিক করে কপি করুন)</div>
+                <p style="font-size: 13px;">সেন্ট মানি করে নিচে আপনার তথ্যগুলো বসিয়ে সাবমিট করুন:</p>
                 <input id="name" placeholder="আপনার নাম"><input id="num" placeholder="বিকাশ লাস্ট ৪ ডিজিট"><input id="tid" placeholder="ট্রানজেকশন আইডি"><button style="width:95%;" onclick="submitOrder()">সাবমিট করুন</button>
             </div>`;
         }
@@ -142,11 +131,11 @@ HTML = """
                 let check = setInterval(() => {
                     fetch('/check_status/' + d.order_id).then(r=>r.json()).then(res => {
                         if(res.status == "approved") { 
-                            document.getElementById('box').innerHTML = "<h3>✅ অভিনন্দন! পেমেন্ট সফল। নিচে জয়েন করুন:<br><br><a href='https://t.me/+oe_rcewUi142ZmNl' target='_blank' style='color:yellow; font-size:20px; text-decoration:none;'>👉 এখানে ক্লিক করুন 👈</a></h3>"; 
+                            document.getElementById('box').innerHTML = "<h3>✅ অভিনন্দন! পেমেন্ট সফল। নিচে জয়েন করুন:<br><br><a href='https://t.me/+oe_rcewUi142ZmNl' target='_blank' style='color:yellow; font-size:20px; text-decoration:none;'>👉 এখানে ক্লিক করে সরাসরি গ্রুপে জয়েন করুন 👈</a></h3>"; 
                             clearInterval(check); 
                         }
                         else if(res.status == "rejected") { 
-                            document.getElementById('box').innerHTML = "<h3>❌ রিজেক্ট!</h3>"; 
+                            document.getElementById('box').innerHTML = "<h3>❌ পেমেন্ট রিজেক্ট হয়েছে! আবার ট্রাই করুন।</h3>"; 
                             clearInterval(check); 
                         }
                     });
@@ -165,13 +154,14 @@ def home(): return render_template_string(HTML)
 def order():
     d = request.json
     order_id = int(time.time())
-    update_db(order_id, "pending")
+    order_status[order_id] = "pending"
     send_to_telegram(d['name'], d['num'], d['tid'], order_id)
     return jsonify({'order_id': order_id})
 
 @app.route('/check_status/<int:order_id>')
 def check_status(order_id):
-    return jsonify({'status': get_db(order_id)})
+    return jsonify({'status': order_status.get(order_id, "pending")})
 
 if __name__ == '__main__': 
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port) এই দেখ আমি তোকে পুরা কোডিংটাই দিলাম। দেখ তো ওই জায়গায় সমস্যা আছে কিনা।
