@@ -35,26 +35,32 @@ def send_to_telegram(name, num, tid, order_id):
     }
     requests.post(url, json=payload)
 
-# --- অটোমেটিক বাটন হ্যান্ডলার ---
+# --- উন্নত বাটন হ্যান্ডলার ---
 def bot_listener():
     last_update_id = 0
     while True:
         try:
-            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates?offset={last_update_id + 1}"
+            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates?offset={last_update_id + 1}&timeout=30"
             r = requests.get(url).json()
             if r.get('result'):
                 for update in r['result']:
                     last_update_id = update['update_id']
                     if 'callback_query' in update:
-                        data = update['callback_query']['data']
+                        query = update['callback_query']
+                        data = query['data']
                         order_id = int(data.split('_')[1])
+                        
                         if "approve_" in data: order_status[order_id] = "approved"
                         elif "reject_" in data: order_status[order_id] = "rejected"
+                        
+                        # বাটন কনফার্মেশন (টেলিগ্রামের জন্য জরুরি)
+                        requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery", 
+                                      json={"callback_query_id": query['id'], "text": "সফল!"})
         except: pass
-        time.sleep(2)
+        time.sleep(1)
 threading.Thread(target=bot_listener, daemon=True).start()
 
-# --- এইচটিএমএল কোড ---
+# --- এইচটিএমএল কোড (আপনার অরিজিনাল ডিজাইন) ---
 HTML = """
 <!DOCTYPE html>
 <html>
